@@ -16,16 +16,17 @@
  */
 package org.apache.spark.streaming.kafka
 
-import java.io.File
 import java.util.Properties
 
 import kafka.producer.KeyedMessage
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Duration, StreamingContext}
 import org.apache.spark.streaming.kafka.util.TestUtil
 import org.junit.{Before, Test, Assert}
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 
 class TestKafkaOutputDStream {
   private val testUtil: TestUtil = TestUtil.getInstance
@@ -51,10 +52,13 @@ class TestKafkaOutputDStream {
 
   @Test
   def testKafkaDStream(): Unit = {
-    val q: mutable.Queue[String] = new mutable.Queue[String]()
-    q.enqueue("a", "b", "c")
-    val tobe = mutable.Queue(ssc.sc.makeRDD(q.toSeq))
-    val instream = ssc.queueStream(tobe)
+    val toBe = new mutable.Queue[RDD[String]]()
+    var j = 0
+    while (j < 9) {
+      toBe.enqueue(ssc.sc.makeRDD(Seq(j.toString, (j + 1).toString, (j + 2).toString)))
+      j += 3
+    }
+    val instream = ssc.queueStream(toBe)
     val producerConf = new Properties()
     producerConf.put("serializer.class", "kafka.serializer.DefaultEncoder")
     producerConf.put("key.serializer.class", "kafka.serializer.StringEncoder")
@@ -65,9 +69,18 @@ class TestKafkaOutputDStream {
       ssc.start()
 
     Thread.sleep(10000)
-    val fetchedMsg: String = new String(
-      testUtil.getNextMessageFromConsumer("default").message.asInstanceOf[Array[Byte]])
-    Assert.assertNotNull(fetchedMsg)
-
+    var i = 0
+    val expectedResults = (0 to 8).map(_.toString).toSeq
+    val actualResults = new ArrayBuffer[String]()
+    while (i < 9) {
+      println(i)
+      val fetchedMsg = new String(
+        testUtil.getNextMessageFromConsumer("default").message.asInstanceOf[Array[Byte]])
+      Assert.assertNotNull(fetchedMsg)
+      actualResults += fetchedMsg
+      i += 1
+    }
+    val actualResultSorted = actualResults.sorted
+    Assert.assertEquals(expectedResults.toSeq, actualResultSorted.toSeq)
   }
 }
