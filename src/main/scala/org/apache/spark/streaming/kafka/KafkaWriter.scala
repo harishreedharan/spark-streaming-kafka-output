@@ -58,40 +58,15 @@ object KafkaWriter {
   def writeDStreamToKafka[T: ClassTag, K, V](dstream: DStream[T], producerConfig: Properties,
     serializerFunc: T => KeyedMessage[K, V]): Unit = {
 
-    // Broadcast the configuration to avoid sending it every time.
-    val config = dstream.ssc.sc.broadcast(producerConfig)
-
+    // Broadcast the producer to avoid sending it every time.
+    val producer = dstream.ssc.sc.broadcast(new Producer[K, V](new ProducerConfig(producerConfig)))
     val func = (rdd: RDD[T]) => {
       rdd.foreachPartition(events => {
         // Get the producer from that local executor and write!
-        KafkaProducerWrapper.getProducer(config.value)
-          .send(events.map(serializerFunc).toArray: _*)
+        producer.value.send(events.map(serializerFunc).toArray: _*)
       })
     }
     dstream.foreachRDD(func)
-  }
-
-  /**
-   * Kafka Producer is not serializable. So we make sure each executor JVM has one copy of the
-   * executor (rather than having one per job). This wrapper ensures that the producer sticks
-   * around while the executor is running and when the executor is killed, so is the producer.
-   */
-  private object KafkaProducerWrapper {
-
-    private var producerOpt: Option[Any] = None
-
-    def getProducer[K, V](props: Properties): Producer[K, V] = {
-      this.synchronized {
-        producerOpt match {
-          case Some(producerInstance) =>
-            producerInstance.asInstanceOf[Producer[K, V]]
-          case None =>
-            val producerInstance = new Producer[K, V](new ProducerConfig(props))
-            producerOpt = Option(producerInstance.asInstanceOf[Any])
-            producerInstance
-        }
-      }
-    }
   }
 
 }
