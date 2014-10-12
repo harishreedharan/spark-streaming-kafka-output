@@ -20,6 +20,8 @@ import java.util.Properties
 
 import kafka.producer.{ProducerConfig, KeyedMessage, Producer}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.streaming
+import org.apache.spark.streaming.dstream
 import org.apache.spark.streaming.dstream.DStream
 
 import scala.reflect.ClassTag
@@ -55,15 +57,27 @@ object KafkaWriter {
    *
    *
    */
-  def writeDStreamToKafka[T: ClassTag, K, V](dstream: DStream[T], producerConfig: Properties,
+  def writeDStreamToKafka[T: ClassTag, K, V](dstream: DStream[T],
+    producerConfig: Properties,
     serializerFunc: T => KeyedMessage[K, V]): Unit = {
 
     // Broadcast the producer to avoid sending it every time.
-    val producer = dstream.ssc.sc.broadcast(new Producer[K, V](new ProducerConfig(producerConfig)))
-    val func = (rdd: RDD[T]) => {
+    val broadcastedConfig = dstream.ssc.sc.broadcast(producerConfig)
+    def func = (rdd: RDD[T]) => {
       rdd.foreachPartition(events => {
         // Get the producer from that local executor and write!
-        producer.value.send(events.map(serializerFunc).toArray: _*)
+        val producer: Producer[K, V] = {
+          if (ProducerObject.isCached) {
+            ProducerObject.getCachedProducer
+              .asInstanceOf[Producer[K, V]]
+          } else {
+            val producer =
+              new Producer[K, V](new ProducerConfig(broadcastedConfig.value))
+            ProducerObject.cacheProducer(producer)
+            producer
+          }
+        }
+        producer.send(events.map(serializerFunc).toArray: _*)
       })
     }
     dstream.foreachRDD(func)

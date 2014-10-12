@@ -81,6 +81,7 @@ class TestKafkaOutputDStream {
       i += 1
     }
     val actualResultSorted = actualResults.sorted
+    println(actualResultSorted mkString)
     Assert.assertEquals(expectedResults.toSeq, actualResultSorted.toSeq)
   }
 }
