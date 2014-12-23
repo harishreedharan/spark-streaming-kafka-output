@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.streaming.kafka
+package com.cloudera.spark.streaming.kafka
 
 import java.util.Properties
 
@@ -97,7 +97,7 @@ class KafkaWriter[T: ClassTag](@transient dstream: DStream[T]) {
   def writeToKafka[K, V](producerConfig: Properties,
     serializerFunc: T => KeyedMessage[K, V]): Unit = {
     // Broadcast the producer to avoid sending it every time.
-    val broadcastedConfig = dstream.ssc.sc.broadcast(producerConfig)
+    val broadcastedConfig = dstream.context.sparkContext.broadcast(producerConfig)
     def func = (rdd: RDD[T]) => {
       rdd.foreachPartition(events => {
         // The ForEachDStream runs the function locally on the driver. So the

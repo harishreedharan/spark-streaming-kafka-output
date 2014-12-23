@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.streaming.kafka
+package com.cloudera.spark.streaming.kafka
 
 import java.util.Properties
 
@@ -24,7 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Duration, StreamingContext}
 import org.apache.spark.streaming.kafka.util.TestUtil
 import org.junit.{Before, Test, Assert}
-import org.apache.spark.streaming.kafka.KafkaWriter._
+import com.cloudera.spark.streaming.kafka.KafkaWriter._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -56,7 +56,7 @@ class TestKafkaOutputDStream {
     val toBe = new mutable.Queue[RDD[String]]()
     var j = 0
     while (j < 9) {
-      toBe.enqueue(ssc.sc.makeRDD(Seq(j.toString, (j + 1).toString, (j + 2).toString)))
+      toBe.enqueue(ssc.sparkContext.makeRDD(Seq(j.toString, (j + 1).toString, (j + 2).toString)))
       j += 3
     }
     val instream = ssc.queueStream(toBe)
@@ -82,7 +82,7 @@ class TestKafkaOutputDStream {
       i += 1
     }
     val actualResultSorted = actualResults.sorted
-    println(actualResultSorted mkString)
+    println(actualResultSorted.mkString)
     Assert.assertEquals(expectedResults.toSeq, actualResultSorted.toSeq)
   }
 }
