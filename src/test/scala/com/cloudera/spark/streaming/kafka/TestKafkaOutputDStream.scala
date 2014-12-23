@@ -24,6 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Duration, StreamingContext}
 import org.apache.spark.streaming.kafka.util.TestUtil
 import org.junit.{Before, Test, Assert}
+import org.apache.spark.streaming.kafka.KafkaWriter._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -64,8 +65,8 @@ class TestKafkaOutputDStream {
     producerConf.put("key.serializer.class", "kafka.serializer.StringEncoder")
     producerConf.put("metadata.broker.list", testUtil.getKafkaServerUrl)
     producerConf.put("request.required.acks", "1")
-    KafkaWriter.writeDStreamToKafka(instream, producerConf, (x: String) => new KeyedMessage[String,
-      Array[Byte]]("default", null,x.getBytes))
+    instream.writeToKafka(producerConf,
+      (x: String) => new KeyedMessage[String,Array[Byte]]("default", null,x.getBytes))
       ssc.start()
 
     Thread.sleep(10000)
