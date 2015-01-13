@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.cloudera.spark.streaming.kafka
+package org.cloudera.spark.streaming.kafka
 
 import java.util.Properties
 
@@ -24,7 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Duration, StreamingContext}
 import org.apache.spark.streaming.kafka.util.TestUtil
 import org.junit.{Before, Test, Assert}
-import com.cloudera.spark.streaming.kafka.KafkaWriter._
+import org.cloudera.spark.streaming.kafka.KafkaWriter._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

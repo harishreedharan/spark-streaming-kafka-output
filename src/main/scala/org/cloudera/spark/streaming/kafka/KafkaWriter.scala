@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package com.cloudera.spark.streaming.kafka
+package org.cloudera.spark.streaming.kafka
 
 import java.util.Properties
 
